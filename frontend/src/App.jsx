@@ -1,122 +1,256 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useState } from "react";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [file, setFile] = useState(null);
+  const [question, setQuestion] = useState("");
+  const [answer, setAnswer] = useState("");
+  const [uploadMessage, setUploadMessage] = useState("");
+
+  // =========================
+  // UPLOAD PDF
+  // =========================
+  const uploadPDF = async () => {
+    if (!file) {
+      alert("Please select a PDF first");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      setUploadMessage("Uploading PDF...");
+
+      const response = await fetch(
+        "http://127.0.0.1:8000/upload",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Upload failed");
+      }
+
+      const data = await response.json();
+
+      setUploadMessage(
+        `✅ ${data.message} (${data.chunks} chunks)`
+      );
+
+    } catch (error) {
+      console.error(error);
+      setUploadMessage("❌ Backend connection failed");
+    }
+  };
+
+
+  // =========================
+  // ASK QUESTION
+  // =========================
+  const askQuestion = async () => {
+    if (!question.trim()) {
+      alert("Please enter a question");
+      return;
+    }
+
+    try {
+      setAnswer("Thinking...");
+
+      const response = await fetch(
+        "http://127.0.0.1:8000/ask",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            question: question,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Question failed");
+      }
+
+      const data = await response.json();
+
+      setAnswer(data.answer);
+
+    } catch (error) {
+      console.error(error);
+      setAnswer("❌ Could not get answer from backend.");
+    }
+  };
+
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
+    <div
+      style={{
+        minHeight: "100vh",
+        backgroundColor: "#f5f5f5",
+        padding: "40px 20px",
+        fontFamily: "Arial, sans-serif",
+      }}
+    >
+
+      <div
+        style={{
+          maxWidth: "750px",
+          margin: "0 auto",
+          backgroundColor: "white",
+          padding: "40px",
+          borderRadius: "12px",
+          boxShadow: "0 4px 15px rgba(0,0,0,0.1)",
+        }}
+      >
+
+        {/* TITLE */}
+        <h1
+          style={{
+            textAlign: "center",
+            marginBottom: "10px",
+          }}
         >
-          Count is {count}
+          📄 ChatPDF
+        </h1>
+
+        <p
+          style={{
+            textAlign: "center",
+            color: "#666",
+          }}
+        >
+          Upload a PDF and ask questions about it
+        </p>
+
+
+        {/* =========================
+            PDF UPLOAD
+        ========================= */}
+
+        <h2>1. Upload PDF</h2>
+
+        <input
+          type="file"
+          accept=".pdf"
+          onChange={(e) => {
+            setFile(e.target.files[0]);
+            setUploadMessage("");
+          }}
+        />
+
+        <br />
+        <br />
+
+        {file && (
+          <p>
+            📎 Selected file: <b>{file.name}</b>
+          </p>
+        )}
+
+        <button
+          onClick={uploadPDF}
+          style={{
+            padding: "10px 20px",
+            cursor: "pointer",
+            border: "none",
+            borderRadius: "6px",
+            backgroundColor: "#222",
+            color: "white",
+            fontSize: "16px",
+          }}
+        >
+          Upload PDF
         </button>
-      </section>
 
-      <div className="ticks"></div>
+        {uploadMessage && (
+          <p
+            style={{
+              marginTop: "15px",
+              fontWeight: "bold",
+            }}
+          >
+            {uploadMessage}
+          </p>
+        )}
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+
+        <hr
+          style={{
+            margin: "30px 0",
+          }}
+        />
+
+
+        {/* =========================
+            ASK QUESTION
+        ========================= */}
+
+        <h2>2. Ask Your PDF</h2>
+
+        <textarea
+          rows="5"
+          placeholder="Ask something about your PDF..."
+          value={question}
+          onChange={(e) => setQuestion(e.target.value)}
+          style={{
+            width: "100%",
+            padding: "12px",
+            boxSizing: "border-box",
+            fontSize: "16px",
+            borderRadius: "6px",
+            border: "1px solid #ccc",
+            resize: "vertical",
+          }}
+        />
+
+        <br />
+        <br />
+
+        <button
+          onClick={askQuestion}
+          style={{
+            padding: "10px 25px",
+            cursor: "pointer",
+            border: "none",
+            borderRadius: "6px",
+            backgroundColor: "#222",
+            color: "white",
+            fontSize: "16px",
+          }}
+        >
+          Ask Question
+        </button>
+
+
+        {/* =========================
+            ANSWER
+        ========================= */}
+
+        <h2 style={{ marginTop: "30px" }}>
+          Answer
+        </h2>
+
+        <div
+          style={{
+            minHeight: "100px",
+            padding: "15px",
+            border: "1px solid #ddd",
+            borderRadius: "6px",
+            backgroundColor: "#fafafa",
+            whiteSpace: "pre-wrap",
+          }}
+        >
+          {answer || "Your answer will appear here..."}
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+      </div>
+
+    </div>
+  );
 }
 
-export default App
+export default App;

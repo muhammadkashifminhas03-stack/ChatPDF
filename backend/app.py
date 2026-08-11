@@ -1,10 +1,9 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
+import os
+import shutil
 
-from pdf_service import upload_pdf
-from pdf_service import ask_question
-
-app = FastAPI(title="ChatPDF API")
+app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
@@ -14,32 +13,33 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+os.makedirs("uploads", exist_ok=True)
+
+
 @app.get("/")
 def home():
-    return {"message": "ChatPDF API Running"}
+    return {"message": "Backend is working"}
+
 
 @app.post("/upload")
-async def upload(file: UploadFile = File(...)):
-    if not file.filename.endswith(".pdf"):
-        raise HTTPException(status_code=400, detail="Upload a PDF file.")
+async def upload_pdf(file: UploadFile = File(...)):
 
-    result = await upload_pdf(file)
+    file_path = os.path.join("uploads", file.filename)
+
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
 
     return {
-        "status": "success",
-        "message": result
+        "message": "PDF uploaded successfully",
+        "filename": file.filename
     }
 
-@app.post("/chat")
-async def chat(data: dict):
 
-    question = data.get("question")
+@app.post("/ask")
+async def ask_question(data: dict):
 
-    if not question:
-        raise HTTPException(status_code=400, detail="Question required")
-
-    answer = ask_question(question)
+    question = data.get("question", "")
 
     return {
-        "answer": answer
+        "answer": f"You asked: {question}"
     }
