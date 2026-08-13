@@ -1,255 +1,213 @@
 import { useState } from "react";
 
 function App() {
+
   const [file, setFile] = useState(null);
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
-  const [uploadMessage, setUploadMessage] = useState("");
+  const [message, setMessage] = useState("");
 
-  // =========================
-  // UPLOAD PDF
-  // =========================
   const uploadPDF = async () => {
+
     if (!file) {
-      alert("Please select a PDF first");
+      setMessage("Please select a PDF first");
       return;
     }
 
-    const formData = new FormData();
-    formData.append("file", file);
+    setMessage("Uploading PDF...");
+    setAnswer("");
 
     try {
-      setUploadMessage("Uploading PDF...");
+
+      const formData = new FormData();
+
+      formData.append(
+        "file",
+        file
+      );
 
       const response = await fetch(
         "http://127.0.0.1:8000/upload",
         {
           method: "POST",
-          body: formData,
+          body: formData
         }
       );
 
+      const data =
+        await response.json();
+
       if (!response.ok) {
-        throw new Error("Upload failed");
+        throw new Error(
+          data.detail || "Upload failed"
+        );
       }
 
-      const data = await response.json();
-
-      setUploadMessage(
-        `✅ ${data.message} (${data.chunks} chunks)`
+      setMessage(
+        `✅ PDF uploaded successfully. ${data.chunks} chunks created.`
       );
 
     } catch (error) {
-      console.error(error);
-      setUploadMessage("❌ Backend connection failed");
+
+      setMessage(
+        `❌ ${error.message}`
+      );
     }
   };
 
 
-  // =========================
-  // ASK QUESTION
-  // =========================
   const askQuestion = async () => {
+
     if (!question.trim()) {
-      alert("Please enter a question");
+
+      setAnswer(
+        "Please enter a question."
+      );
+
       return;
     }
 
+    setAnswer("Thinking...");
+
     try {
-      setAnswer("Thinking...");
 
       const response = await fetch(
         "http://127.0.0.1:8000/ask",
         {
           method: "POST",
+
           headers: {
-            "Content-Type": "application/json",
+            "Content-Type":
+              "application/json"
           },
+
           body: JSON.stringify({
-            question: question,
-          }),
+            question: question
+          })
         }
       );
 
+
+      const data =
+        await response.json();
+
+
       if (!response.ok) {
-        throw new Error("Question failed");
+
+        throw new Error(
+          data.detail || "Question failed"
+        );
       }
 
-      const data = await response.json();
 
-      setAnswer(data.answer);
+      setAnswer(
+        data.answer
+      );
 
     } catch (error) {
-      console.error(error);
-      setAnswer("❌ Could not get answer from backend.");
+
+      setAnswer(
+        `❌ ${error.message}`
+      );
     }
   };
 
 
   return (
+
     <div
       style={{
-        minHeight: "100vh",
-        backgroundColor: "#f5f5f5",
-        padding: "40px 20px",
-        fontFamily: "Arial, sans-serif",
+        maxWidth: "800px",
+        margin: "40px auto",
+        padding: "20px",
+        fontFamily: "Arial"
       }}
     >
 
+      <h1>📄 ChatPDF</h1>
+
+      <p>
+        Upload your PDF and ask questions
+        about it.
+      </p>
+
+
+      <hr />
+
+
+      <h2>Upload PDF</h2>
+
+      <input
+        type="file"
+        accept=".pdf"
+        onChange={(e) =>
+          setFile(
+            e.target.files[0]
+          )
+        }
+      />
+
+      <br />
+      <br />
+
+      <button
+        onClick={uploadPDF}
+      >
+        Upload PDF
+      </button>
+
+
+      <p>
+        {message}
+      </p>
+
+
+      <hr />
+
+
+      <h2>Ask Your PDF</h2>
+
+      <textarea
+        rows="5"
+        style={{
+          width: "100%",
+          padding: "10px"
+        }}
+        value={question}
+        onChange={(e) =>
+          setQuestion(
+            e.target.value
+          )
+        }
+        placeholder="Ask something about your PDF..."
+      />
+
+      <br />
+      <br />
+
+      <button
+        onClick={askQuestion}
+      >
+        Ask Question
+      </button>
+
+
+      <h2>Answer</h2>
+
       <div
         style={{
-          maxWidth: "750px",
-          margin: "0 auto",
-          backgroundColor: "white",
-          padding: "40px",
-          borderRadius: "12px",
-          boxShadow: "0 4px 15px rgba(0,0,0,0.1)",
+          background: "#f5f5f5",
+          padding: "20px",
+          minHeight: "100px",
+          whiteSpace: "pre-wrap"
         }}
       >
-
-        {/* TITLE */}
-        <h1
-          style={{
-            textAlign: "center",
-            marginBottom: "10px",
-          }}
-        >
-          📄 ChatPDF
-        </h1>
-
-        <p
-          style={{
-            textAlign: "center",
-            color: "#666",
-          }}
-        >
-          Upload a PDF and ask questions about it
-        </p>
-
-
-        {/* =========================
-            PDF UPLOAD
-        ========================= */}
-
-        <h2>1. Upload PDF</h2>
-
-        <input
-          type="file"
-          accept=".pdf"
-          onChange={(e) => {
-            setFile(e.target.files[0]);
-            setUploadMessage("");
-          }}
-        />
-
-        <br />
-        <br />
-
-        {file && (
-          <p>
-            📎 Selected file: <b>{file.name}</b>
-          </p>
-        )}
-
-        <button
-          onClick={uploadPDF}
-          style={{
-            padding: "10px 20px",
-            cursor: "pointer",
-            border: "none",
-            borderRadius: "6px",
-            backgroundColor: "#222",
-            color: "white",
-            fontSize: "16px",
-          }}
-        >
-          Upload PDF
-        </button>
-
-        {uploadMessage && (
-          <p
-            style={{
-              marginTop: "15px",
-              fontWeight: "bold",
-            }}
-          >
-            {uploadMessage}
-          </p>
-        )}
-
-
-        <hr
-          style={{
-            margin: "30px 0",
-          }}
-        />
-
-
-        {/* =========================
-            ASK QUESTION
-        ========================= */}
-
-        <h2>2. Ask Your PDF</h2>
-
-        <textarea
-          rows="5"
-          placeholder="Ask something about your PDF..."
-          value={question}
-          onChange={(e) => setQuestion(e.target.value)}
-          style={{
-            width: "100%",
-            padding: "12px",
-            boxSizing: "border-box",
-            fontSize: "16px",
-            borderRadius: "6px",
-            border: "1px solid #ccc",
-            resize: "vertical",
-          }}
-        />
-
-        <br />
-        <br />
-
-        <button
-          onClick={askQuestion}
-          style={{
-            padding: "10px 25px",
-            cursor: "pointer",
-            border: "none",
-            borderRadius: "6px",
-            backgroundColor: "#222",
-            color: "white",
-            fontSize: "16px",
-          }}
-        >
-          Ask Question
-        </button>
-
-
-        {/* =========================
-            ANSWER
-        ========================= */}
-
-        <h2 style={{ marginTop: "30px" }}>
-          Answer
-        </h2>
-
-        <div
-          style={{
-            minHeight: "100px",
-            padding: "15px",
-            border: "1px solid #ddd",
-            borderRadius: "6px",
-            backgroundColor: "#fafafa",
-            whiteSpace: "pre-wrap",
-          }}
-        >
-          {answer || "Your answer will appear here..."}
-        </div>
-
+        {answer ||
+          "Your answer will appear here."}
       </div>
 
     </div>
+
   );
 }
 

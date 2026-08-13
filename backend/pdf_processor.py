@@ -27,7 +27,6 @@ def process_pdf(file_path):
             chunk_text = text[start:end].strip()
 
             if chunk_text:
-
                 chunks.append({
                     "text": chunk_text,
                     "page": page_number
